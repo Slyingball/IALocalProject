@@ -1,0 +1,449 @@
+  <!DOCTYPE html>
+
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>🤖 Interface Multi-IA Locale</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <header>
+
+            <h1>🤖 Multi-IA Locale</h1>
+
+            <p class="subtitle">Propulsé par Ollama + Flask</p>
+
+        </header>
+
+        <!-- Sélecteur de modèles style Claude -->
+
+        <div class="model-selector">
+
+            <div class="model-label">Modèle IA :</div>
+
+            <div class="model-options">
+
+                {% for key, info in models.items() %}
+
+                <button class="model-btn" data-model="{{ key }}" 
+
+                        onclick="selectModel('{{ key }}')">
+
+                    <span class="model-icon">{{ info.icon }}</span>
+
+                    <div class="model-info">
+
+                        <div class="model-name">{{ info.name }}</div>
+
+                        <div class="model-desc">{{ info.description }}</div>
+
+                    </div>
+
+                    <span class="checkmark">✓</span>
+
+                </button>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+        <!-- Options avancées -->
+
+        <div class="options-panel">
+
+            <label class="toggle-option">
+
+                <input type="checkbox" id="useContext" checked>
+
+                <span>Utiliser le contexte de conversation</span>
+
+            </label>
+
+            
+
+            <label class="select-option">
+
+                <span>Mode système :</span>
+
+                <select id="systemMode">
+
+                    <option value="general">Général</option>
+
+                    <option value="cybersecurity">Cybersécurité Expert</option>
+
+                </select>
+
+            </label>
+
+        </div>
+
+        <!-- Zone de conversation -->
+
+        <div class="chat-container" id="chatContainer">
+
+            <div class="welcome-message">
+
+                <h2>👋 Bienvenue !</h2>
+
+                <p>Sélectionnez un modèle et commencez à poser vos questions.</p>
+
+            </div>
+
+        </div>
+
+        <!-- Formulaire d'envoi -->
+
+        <form id="askForm" class="input-form">
+
+            <textarea id="question" 
+
+                      rows="3" 
+
+                      placeholder="Posez votre question ici..."
+
+                      required></textarea>
+
+            <div class="form-actions">
+
+                <button type="button" onclick="clearHistory()" class="btn-secondary">
+
+                    🗑️ Effacer l'historique
+
+                </button>
+
+                <button type="submit" class="btn-primary" id="submitBtn">
+
+                    <span>Envoyer</span>
+
+                    <span class="loading" style="display:none;">⏳</span>
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <script>
+
+        let currentModel = 'llama3.1';
+
+        let messageCount = 0;
+
+        // Initialiser le modèle par défaut
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            selectModel('llama3.1');
+
+        });
+
+        function selectModel(modelKey) {
+
+            currentModel = modelKey;
+
+            
+
+            // Mettre à jour l'UI
+
+            document.querySelectorAll('.model-btn').forEach(btn => {
+
+                btn.classList.remove('active');
+
+            });
+
+            document.querySelector(`[data-model="${modelKey}"]`).classList.add('active');
+
+            
+
+            // Charger l'historique du modèle
+
+            loadHistory(modelKey);
+
+        }
+
+        async function loadHistory(modelKey) {
+
+            try {
+
+                const response = await fetch(`/history/${modelKey}`);
+
+                const data = await response.json();
+
+                
+
+                const chatContainer = document.getElementById('chatContainer');
+
+                chatContainer.innerHTML = '';
+
+                
+
+                if (data.history && data.history.length > 0) {
+
+                    data.history.forEach(item => {
+
+                        addMessage(item.question, 'user', false);
+
+                        addMessage(item.answer, 'ai', false);
+
+                    });
+
+                } else {
+
+                    chatContainer.innerHTML = `
+
+                        <div class="welcome-message">
+
+                            <h2>🎯 ${data.model}</h2>
+
+                            <p>Aucun historique. Commencez une nouvelle conversation !</p>
+
+                        </div>`;
+
+                }
+
+            } catch (error) {
+
+                console.error('Erreur lors du chargement de l\'historique:', error);
+
+            }
+
+        }
+
+        function addMessage(text, type, scroll = true) {
+
+            const chatContainer = document.getElementById('chatContainer');
+
+            
+
+            // Supprimer le message de bienvenue
+
+            const welcome = chatContainer.querySelector('.welcome-message');
+
+            if (welcome) welcome.remove();
+
+            
+
+            const messageDiv = document.createElement('div');
+
+            messageDiv.className = `message ${type}-message`;
+
+            
+
+            const avatar = document.createElement('div');
+
+            avatar.className = 'avatar';
+
+            avatar.textContent = type === 'user' ? '👤' : '🤖';
+
+            
+
+            const content = document.createElement('div');
+
+            content.className = 'message-content';
+
+            content.textContent = text;
+
+            
+
+            messageDiv.appendChild(avatar);
+
+            messageDiv.appendChild(content);
+
+            chatContainer.appendChild(messageDiv);
+
+            
+
+            if (scroll) {
+
+                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+            }
+
+        }
+
+        function showError(message) {
+
+            const chatContainer = document.getElementById('chatContainer');
+
+            const errorDiv = document.createElement('div');
+
+            errorDiv.className = 'message error-message';
+
+            errorDiv.innerHTML = `
+
+                <div class="avatar">⚠️</div>
+
+                <div class="message-content">${message}</div>
+
+            `;
+
+            chatContainer.appendChild(errorDiv);
+
+            errorDiv.scrollIntoView({ behavior: 'smooth' });
+
+        }
+
+        document.getElementById('askForm').addEventListener('submit', async (e) => {
+
+            e.preventDefault();
+
+            
+
+            const question = document.getElementById('question').value.trim();
+
+            if (!question) return;
+
+            
+
+            const useContext = document.getElementById('useContext').checked;
+
+            const systemMode = document.getElementById('systemMode').value;
+
+            const submitBtn = document.getElementById('submitBtn');
+
+            
+
+            // Désactiver le formulaire
+
+            submitBtn.disabled = true;
+
+            submitBtn.querySelector('span').style.display = 'none';
+
+            submitBtn.querySelector('.loading').style.display = 'inline';
+
+            
+
+            // Afficher la question
+
+            addMessage(question, 'user');
+
+            document.getElementById('question').value = '';
+
+            
+
+            try {
+
+                const response = await fetch('/ask', {
+
+                    method: 'POST',
+
+                    headers: { 'Content-Type': 'application/json' },
+
+                    body: JSON.stringify({
+
+                        model: currentModel,
+
+                        question: question,
+
+                        use_context: useContext,
+
+                        system_mode: systemMode
+
+                    })
+
+                });
+
+                
+
+                const data = await response.json();
+
+                
+
+                if (data.error) {
+
+                    showError(`Erreur: ${data.error}`);
+
+                } else {
+
+                    addMessage(data.answer, 'ai');
+
+                }
+
+            } catch (error) {
+
+                showError(`Erreur de connexion: ${error.message}`);
+
+            } finally {
+
+                // Réactiver le formulaire
+
+                submitBtn.disabled = false;
+
+                submitBtn.querySelector('span').style.display = 'inline';
+
+                submitBtn.querySelector('.loading').style.display = 'none';
+
+                document.getElementById('question').focus();
+
+            }
+
+        });
+
+        async function clearHistory() {
+
+            if (!confirm(`Voulez-vous effacer l'historique de ${currentModel} ?`)) {
+
+                return;
+
+            }
+
+            
+
+            try {
+
+                await fetch('/clear_history', {
+
+                    method: 'POST',
+
+                    headers: { 'Content-Type': 'application/json' },
+
+                    body: JSON.stringify({ model: currentModel })
+
+                });
+
+                
+
+                loadHistory(currentModel);
+
+            } catch (error) {
+
+                showError('Erreur lors de l\'effacement de l\'historique');
+
+            }
+
+        }
+
+        // Raccourci clavier Ctrl+Enter pour envoyer
+
+        document.getElementById('question').addEventListener('keydown', (e) => {
+
+            if (e.ctrlKey && e.key === 'Enter') {
+
+                e.preventDefault();
+
+                document.getElementById('askForm').dispatchEvent(new Event('submit'));
+
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>
