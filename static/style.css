@@ -629,3 +629,120 @@ button {
     }
 
 }
+/* Carte d'exécution distante */
+.executor-card {
+    margin: 20px 24px 0 24px;
+    padding: 20px;
+    background: #27273a;
+    border: 1px solid #3d3d52;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.executor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.executor-header h2 {
+    margin-bottom: 6px;
+}
+
+.executor-subtitle {
+    color: #a1a1aa;
+    font-size: 0.95em;
+}
+
+.badge {
+    background: #667eea33;
+    color: #c7d2fe;
+    border: 1px solid #667eea;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge.success {
+    background: #16a34a22;
+    border-color: #22c55e;
+    color: #bbf7d0;
+}
+
+.badge.warning {
+    background: #f59e0b22;
+    border-color: #fbbf24;
+    color: #fef3c7;
+}
+
+.badge.danger {
+    background: #ef444422;
+    border-color: #f87171;
+    color: #fecdd3;
+}
+
+.badge.muted {
+    background: #3d3d52;
+    border-color: #52525b;
+    color: #e4e4e7;
+}
+
+.executor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9em;
+    color: #d4d4d8;
+}
+
+.field input {
+    background: #1e1e2e;
+    border: 1px solid #3d3d52;
+    color: #f4f4f5;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.executor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin: 8px 0 12px 0;
+}
+
+.executor-output {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.executor-output pre {
+    background: #1e1e2e;
+    border: 1px solid #3d3d52;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 80px;
+    max-height: 220px;
+    overflow: auto;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    color: #e4e4e7;
+}
+
+.output-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}

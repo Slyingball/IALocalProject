@@ -4,6 +4,13 @@ import requests
 
 import json
 
+from remote_executor import (
+    RemoteCommandExecutor,
+    CommandValidationError,
+    RemoteExecutionError,
+    sanitize_and_split,
+)
+
 app = Flask(__name__)
 
 # Configuration des modèles IA locaux
@@ -73,6 +80,9 @@ conversation_history = {
     "llama2-uncensored": []
 
 }
+
+
+remote_executor_client = RemoteCommandExecutor()
 
 
 @app.route("/", methods=["GET"])
@@ -228,6 +238,41 @@ def get_history(model_key):
 
         "history": conversation_history[model_key]
 
+    })
+
+
+@app.route("/api/execute_command", methods=["POST"])
+def execute_command():
+    data = request.get_json() or {}
+    target_host = data.get("target_ip") or data.get("target") or data.get("host")
+    command = (data.get("command") or "").strip()
+
+    if not target_host:
+        return jsonify({"error": "Adresse IP ou hôte cible manquant"}), 400
+
+    try:
+        command_parts = sanitize_and_split(command)
+    except CommandValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    try:
+        result = remote_executor_client.execute(
+            host=target_host,
+            command_parts=command_parts,
+            username=data.get("username"),
+            password=data.get("password"),
+            key_filename=data.get("key_path"),
+            port=data.get("port"),
+        )
+    except RemoteExecutionError as exc:
+        return jsonify({"error": str(exc)}), 500
+
+    return jsonify({
+        "target": target_host,
+        "command": " ".join(command_parts),
+        "stdout": result["stdout"],
+        "stderr": result["stderr"],
+        "exit_code": result["exit_code"],
     })
 
 
