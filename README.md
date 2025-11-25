@@ -65,15 +65,6 @@ Contraintes :
 - `lsof -i` : relie chaque socket réseau à son processus PID/commande, pratique pour retrouver le binaire responsable d'un port.
 - `top -n 1 -b` : capture instantanée complète des ressources (CPU/RAM) dans un format brut exploitable par un parser.
 
-## Lancer un Nmap depuis l'interface
-1. Lancez le serveur Flask puis ouvrez l'UI (http://localhost:5000). Assurez-vous que `nmap` est installé sur la machine Flask **et** sur la cible.
-2. Dans la section "🚀 Exécuter une commande sur une cible", saisissez :
-   - **Cible** : IP ou hostname distant (ex. `192.168.1.10`).
-   - **Commande** : tapez `nmap -oX -p 22,80 192.168.1.10` (ou cliquez sur « Préremplir un Nmap » pour injecter un exemple).
-   - (Optionnel) identifiants SSH si les variables `REMOTE_SSH_*` ne sont pas définies.
-3. Cliquez sur **Exécuter** : stdout/stderr/exit code s'affichent immédiatement dans le bloc de résultat.
-4. Si vous obtenez `Erreur du modèle (404)` dans la partie chat, vérifiez que l'API Ollama est bien accessible sur `http://localhost:11434/api/generate` et que le modèle demandé est installé.
-
 ## Mise en route
 1. Créer et activer un environnement virtuel Python 3.11+.
 2. Installer les dépendances :
