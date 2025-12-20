@@ -82,7 +82,8 @@ ollama pull llama2-uncensored:latest
 Lancez le serveur Flask :
 
 ```bash
-python app.py
+  python app.py
+  # UI: http://localhost:5000
 ```
 
 Accédez à l'interface via : **http://localhost:5000**
@@ -118,13 +119,11 @@ Vous pouvez intégrer ce projet dans vos scripts via les endpoints suivants :
 
 -----
 
-## Structure du Projet
-
-  * **`app.py`** : Cœur de l'application. Gère le serveur Web, la logique de discussion, et l'exécution sécurisée de `subprocess` pour Nmap.
-  * **`templates/index.html`** : L'interface utilisateur. Intègre la sidebar dynamique et la fenêtre de chat.
-  * **`static/style.css`** : Feuille de style complète (thème sombre, animations, layout responsive).
-  * **`remote_executor.py`** : *[Expérimental]* Module utilitaire contenant une classe `RemoteCommandExecutor` pour exécuter des commandes via SSH (Paramiko). Non connecté à l'UI pour l'instant.
-  * **`chat_llama.py`** : Script minimaliste pour tester la connexion Ollama en ligne de commande.
+## Structure du projet
+- `app.py` : Cœur de l'application (Serveur Flask, logique IA, Tool calling Nmap).
+- `templates/index.html` : Interface chat (sidebar modèles, options, commandes).
+- `static/style.css` : Thème sombre et styles responsives.
+- `requirements.txt` : Liste des dépendances (Flask, requests).
 
 -----
 
