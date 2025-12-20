@@ -1,20 +1,14 @@
-Voici une version "parfaite" et complète du README, basée sur l'analyse de tous les fichiers de ton projet (notamment `app.py` pour la logique, `style.css` pour l'identité visuelle, et `remote_executor.py` pour les fonctionnalités latentes).
-
-Ce README est structuré pour être professionnel, clair et orienté utilisateur.
-
------
-
 # IALocalProject : Assistant Cyber & Multi-IA Local
 
 **Une interface web moderne pour orchestrer des LLMs locaux (via Ollama) avec des capacités d'exécution d'outils réels (Nmap).**
 
   
 
-## 📋 Vue d'ensemble
+## Vue d'ensemble
 
 Ce projet est une démonstration d'**Agent IA autonome** tournant 100% en local. Il connecte une interface web (Flask) à Ollama. Contrairement à un chat classique, les modèles compatibles peuvent exécuter des **outils** (Function Calling) pour interagir avec le système, notamment pour effectuer des scans réseau via **Nmap**.
 
-### 🔑 Fonctionnalités Clés
+### Fonctionnalités Clés
 
   * **Multi-Modèles :** Basculez instantanément entre différents modèles (Llama 3 rapide, Llama 3.1 intelligent, Llama 2 non-censuré).
   * **Support des "Tools" (Outils) :** Les modèles compatibles (ex: `llama3.1:8b`) peuvent lancer des scans Nmap réels et analyser les résultats.
@@ -27,7 +21,7 @@ Ce projet est une démonstration d'**Agent IA autonome** tournant 100% en local.
 
 -----
 
-## 🛠️ Prérequis
+## Prérequis
 
 Avant de lancer le projet, assurez-vous d'avoir :
 
@@ -81,7 +75,7 @@ ollama pull llama2-uncensored:latest
 
 -----
 
-## 🖥️ Utilisation
+## Utilisation
 
 ### Démarrage
 
@@ -124,7 +118,7 @@ Vous pouvez intégrer ce projet dans vos scripts via les endpoints suivants :
 
 -----
 
-## 📂 Structure du Projet
+## Structure du Projet
 
   * **`app.py`** : Cœur de l'application. Gère le serveur Web, la logique de discussion, et l'exécution sécurisée de `subprocess` pour Nmap.
   * **`templates/index.html`** : L'interface utilisateur. Intègre la sidebar dynamique et la fenêtre de chat.
@@ -142,7 +136,7 @@ Vous pouvez intégrer ce projet dans vos scripts via les endpoints suivants :
 
 -----
 
-## 🔭 Roadmap (Idées futures)
+## Roadmap (Idées futures)
 
   * [ ] Intégration de `remote_executor.py` dans l'UI pour lancer des scans depuis un serveur distant (VPS).
   * [ ] Ajout d'une base de données (SQLite) pour persister l'historique après redémarrage.
