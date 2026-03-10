@@ -1,13 +1,24 @@
 <!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-IA Locale</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
+    <div class="background-effects">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand">
@@ -118,7 +129,8 @@
             </div>
 
             <form id="askForm" class="input-dock">
-                <textarea id="question" rows="2" placeholder="Saisissez votre requete... (Ctrl+Enter pour envoyer)" required></textarea>
+                <textarea id="question" rows="2" placeholder="Saisissez votre requete... (Ctrl+Enter pour envoyer)"
+                    required></textarea>
                 <div class="dock-actions">
                     <button type="button" class="ghost-btn" onclick="clearHistory()">Effacer historique</button>
                     <button type="submit" class="send-btn" id="submitBtn">
@@ -180,8 +192,10 @@
             messageDiv.className = `message ${type}-message`;
 
             const avatar = document.createElement('div');
-            avatar.className = 'avatar';
-            avatar.textContent = type === 'user' ? 'U' : 'IA';
+            avatar.className = `avatar ${type}-avatar`;
+            avatar.innerHTML = type === 'user'
+                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>';
 
             const content = document.createElement('div');
             content.className = 'message-content';
@@ -289,5 +303,5 @@
         });
     </script>
 </body>
-</html>
 
+</html>
