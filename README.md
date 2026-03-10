@@ -28,12 +28,12 @@ Ce projet est une démonstration d'**Agent IA autonome** fonctionnant à 100% en
 
 * 🔄 **Multi-Modèles :** Basculez instantanément entre différents modèles (Llama 3 rapide, Llama 3.1 intelligent, Llama 2 non-censuré).
 * 🛠️ **Support des "Tools" (Outils) :** Les modèles compatibles (ex: `llama3.1:8b`) peuvent lancer des scans Nmap réels et analyser les résultats.
-* 🎭 **Modes Système :**
-    * 🛡️ **Cybersécurité :** Expert en OWASP, audit et pentest.
-    * 🧠 **Général :** Assistant polyvalent et structuré.
-* 🎨 **Interface Immersive :** Design sombre "Glassmorphism", responsive et adapté au workflow hacker/développeur.
-* 🔌 **API REST :** Pilotage complet possible via API JSON (sans navigateur).
-* 🧠 **Historique Intelligent :** Gestion de contexte (3 derniers échanges) et persistance en mémoire.
+*  **Modes Système :**
+    *  **Cybersécurité :** Expert en OWASP, audit et pentest.
+    *  **Général :** Assistant polyvalent et structuré.
+*  **Interface Immersive :** Design sombre "Glassmorphism", responsive et adapté au workflow hacker/développeur.
+*  **API REST :** Pilotage complet possible via API JSON (sans navigateur).
+*  **Historique Intelligent :** Gestion de contexte (3 derniers échanges) et persistance en mémoire.
 
 ---
 
