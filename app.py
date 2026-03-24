@@ -6,8 +6,10 @@ import subprocess
 import requests
 import platform
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173", "http://localhost:4173"])
 
 # --- Configuration ---
 # Utilisation de variables d'environnement avec valeurs par défaut
@@ -329,6 +331,19 @@ def chat_with_tools(model_info, messages):
         return handle_tool_calls(model_info, messages, assistant_message, tool_calls)
 
     return assistant_message.get("content", "Pas de réponse")
+
+
+@app.route("/models", methods=["GET"])
+def get_models():
+    models_list = {}
+    for key, info in MODELS.items():
+        models_list[key] = {
+            "name": info["name"],
+            "description": info["description"],
+            "icon": info["icon"],
+            "supports_tools": info["supports_tools"],
+        }
+    return jsonify(models_list)
 
 
 @app.route("/", methods=["GET"])
