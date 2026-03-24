@@ -5,6 +5,8 @@ import shutil
 import subprocess
 
 import requests
+import platform
+
 
 app = Flask(__name__)
 
@@ -39,7 +41,7 @@ MODELS = {
         "model_id": "llama2-uncensored:latest",
         "description": "Modele sans filtres",
         "icon": "L2",
-        "supports_tools": True,
+        "supports_tools": False,
     },
 }
 
@@ -106,7 +108,25 @@ NMAP_TOOL = {
     },
 }
 
-TOOLS = [NMAP_TOOL]
+PING_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "run_ping",
+        "description": "Teste la connectivité vers une machine (Ping ICMP).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target": {
+                    "type": "string",
+                    "description": "Adresse IP ou nom de domaine à pinger.",
+                }
+            }, 
+            "required": ["target"],
+        },
+    },
+}
+
+TOOLS = [NMAP_TOOL, PING_TOOL]
 
 def build_messages(model_key: str, question: str, system_mode: str, use_context: bool):
     system_prompt = SYSTEM_PROMPTS.get(system_mode, SYSTEM_PROMPTS["general"])
@@ -180,6 +200,36 @@ def run_nmap_tool(arguments: dict):
     except Exception as exc:  # noqa: BLE001
         return {"error": f"Erreur lors de l'execution de nmap: {exc}"}
 
+def run_ping_tool(arguments: dict):
+    target = (arguments.get("target") or "").strip()
+
+    if not target:
+        return {"error": "Cible manquante pour ping."}
+
+    if not re.fullmatch(r"[A-Za-z0-9_.:/-]+", target):
+        return {"error": "Cible invalide (caracteres non autorises)."}
+
+    param = "-n" if platform.system().lower() == "windows" else "-c"
+    cmd = ["ping", param, "4", target]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout= 10,
+            check=False,
+        )
+        return {
+            "command": " ".join(cmd),
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
+    except subprocess.TimeoutExpired:
+        return {"error": "Le ping a dépassé le delai autorise (timeout)."}
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"Erreur lors de l'execution de ping: {exc}"}
 
 def call_ollama_chat(model_info, messages, include_tools=True):
     payload = {
@@ -218,15 +268,26 @@ def handle_tool_calls(model_info, base_messages, assistant_message, tool_calls):
     for call in tool_calls:
         function_data = call.get("function", {})
         name = function_data.get("name")
-        if name != "run_nmap":
-            continue
-
         args = safe_json_loads(function_data.get("arguments"))
-        result = run_nmap_tool(args)
+        
+        # --- DÉBUT DES MODIFICATIONS ---
+        result = {}
+        
+        # On vérifie quel outil est demandé par l'IA
+        if name == "run_nmap":
+            result = run_nmap_tool(args)
+        elif name == "run_ping":       # <--- Nouveau cas pour le ping
+            result = run_ping_tool(args)
+        else:
+            # Si l'outil est inconnu, on l'ignore ou on log une erreur
+            print(f"Outil inconnu demandé: {name}")
+            continue
+        # --- FIN DES MODIFICATIONS ---
+
         tool_results.append(
             {
                 "role": "tool",
-                "name": "run_nmap",
+                "name": name,
                 "tool_call_id": call.get("id"),
                 "content": json.dumps(result),
             }
