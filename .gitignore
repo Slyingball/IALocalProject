@@ -1,2 +1,5 @@
 .idea/
 *.iml
+
+# Local execution data
+data/

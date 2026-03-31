@@ -18,7 +18,7 @@ OLLAMA_CHAT_URL = f"{OLLAMA_BASE_URL}/api/chat"
 OLLAMA_GENERATE_URL = f"{OLLAMA_BASE_URL}/api/generate"
 
 # Configuration de l'historique
-MAX_HISTORY_STORED = 10   # Nombre d'échanges gardés en mémoire
+MAX_HISTORY_STORED = 50   # Nombre d'échanges gardés en mémoire
 MAX_HISTORY_CONTEXT = 3   # Nombre d'échanges envoyés à l'IA pour le contexte
 
 # Optimisation: Session persistante pour les requêtes HTTP (Keep-Alive)
@@ -74,7 +74,31 @@ SYSTEM_PROMPTS = {
     ),
 }
 
-conversation_history = {key: [] for key in MODELS.keys()}
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+HISTORY_FILE = os.path.join(DATA_DIR, "history.json")
+
+def load_history():
+    history = {key: [] for key in MODELS.keys()}
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                for key in saved:
+                    if key in history:
+                        history[key] = saved[key]
+        except Exception as e:
+            print(f"Erreur au chargement de l'historique : {e}")
+    return history
+
+def save_history(history_data):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    try:
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(history_data, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Erreur à la sauvegarde de l'historique : {e}")
+
+conversation_history = load_history()
 
 TOOL_INSTRUCTIONS = (
     "Tu disposes de l'outil 'run_nmap' (appel de fonction) pour réaliser un "
@@ -376,6 +400,8 @@ def ask():
         # On garde les X derniers en mémoire
         if len(conversation_history[model_key]) > MAX_HISTORY_STORED:
             conversation_history[model_key] = conversation_history[model_key][-MAX_HISTORY_STORED:]
+        
+        save_history(conversation_history)
 
         return jsonify(
             {
@@ -403,10 +429,12 @@ def clear_history():
     if model_key == "all":
         for key in conversation_history:
             conversation_history[key] = []
+        save_history(conversation_history)
         return jsonify({"message": "Tout l'historique a été effacé"})
 
     if model_key in conversation_history:
         conversation_history[model_key] = []
+        save_history(conversation_history)
         return jsonify({"message": f"Historique de {MODELS[model_key]['name']} effacé"})
 
     return jsonify({"error": "Modèle inconnu"}), 400
