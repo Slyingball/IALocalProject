@@ -56,8 +56,9 @@
                 <label class="row select-row">
                     <span>Mode systeme</span>
                     <select id="systemMode">
-                        <option value="general">General</option>
-                        <option value="cybersecurity">Cybersecurite</option>
+                        {% for key, prompt in prompts.items() %}
+                        <option value="{{ key }}">{{ prompt.icon }} {{ prompt.name }}</option>
+                        {% endfor %}
                     </select>
                 </label>
             </div>
@@ -103,6 +104,9 @@
             </div>
 
             <div class="panel actions-panel">
+                <button type="button" class="ghost-btn settings-btn" onclick="openPromptAdmin()">
+                    ⚙️ Gestion des Prompts
+                </button>
                 <button type="button" class="ghost-btn" onclick="clearHistory()">
                     Effacer historique modele
                 </button>
@@ -141,12 +145,303 @@
             </form>
         </main>
     </div>
+
+    <!-- ====== MODAL ADMINISTRATION DES PROMPTS ====== -->
+    <div class="modal-overlay" id="promptModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-icon">⚙️</div>
+                    <div>
+                        <h2 class="modal-title">Gestion des Prompts Systèmes</h2>
+                        <p class="modal-subtitle">Créez et personnalisez les comportements de votre IA</p>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closePromptAdmin()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Colonne gauche : Liste des prompts -->
+                <div class="prompt-list-pane">
+                    <div class="prompt-list-header">
+                        <span class="prompt-list-title">Profils</span>
+                        <button class="add-prompt-btn" onclick="prepareNewPrompt()" title="Nouveau prompt">+ Nouveau</button>
+                    </div>
+                    <div class="prompt-list" id="promptList">
+                        <!-- Rempli dynamiquement par JS -->
+                    </div>
+                </div>
+
+                <!-- Colonne droite : Éditeur -->
+                <div class="prompt-editor-pane" id="promptEditorPane">
+                    <div class="editor-placeholder" id="editorPlaceholder">
+                        <div class="editor-placeholder-icon">📝</div>
+                        <p>Sélectionnez un prompt ou créez-en un nouveau</p>
+                    </div>
+                    <div class="editor-form" id="editorForm" style="display:none;">
+                        <div class="editor-row">
+                            <div class="editor-field">
+                                <label for="promptIcon">Icône</label>
+                                <input type="text" id="promptIcon" placeholder="💬" maxlength="4">
+                            </div>
+                            <div class="editor-field" style="flex:3">
+                                <label for="promptName">Nom du profil</label>
+                                <input type="text" id="promptName" placeholder="Ex: Assistant Développeur">
+                            </div>
+                        </div>
+                        <div class="editor-field">
+                            <label for="promptId">Identifiant technique</label>
+                            <input type="text" id="promptId" placeholder="ex: dev-python" pattern="[a-z0-9_-]+">
+                            <small class="editor-hint">Lettres minuscules, chiffres, tirets. Non modifiable après création.</small>
+                        </div>
+                        <div class="editor-field" style="flex:1">
+                            <label for="promptContent">Prompt système</label>
+                            <textarea id="promptContent" rows="10" placeholder="Décrivez le rôle de l'IA..."></textarea>
+                            <div class="editor-char-count"><span id="charCount">0</span> / 5000</div>
+                        </div>
+                        <div class="editor-actions">
+                            <div class="editor-actions-left">
+                                <span class="editor-meta" id="editorMeta"></span>
+                            </div>
+                            <div class="editor-actions-right">
+                                <button class="ghost-btn" id="btnDuplicate" onclick="duplicateCurrentPrompt()" style="display:none;">📋 Dupliquer</button>
+                                <button class="ghost-btn danger-btn" id="btnDelete" onclick="deleteCurrentPrompt()" style="display:none;">🗑️ Supprimer</button>
+                                <button class="send-btn" onclick="savePrompt()">💾 Enregistrer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         let currentModel = 'llama3';
+        let promptsData = {}; // Cache local des prompts
+        let currentEditingPromptId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             selectModel(currentModel);
+            loadPromptsData();
         });
+
+        // =============================================
+        // --- GESTION DES PROMPTS (ADMIN PANEL) ---
+        // =============================================
+
+        async function loadPromptsData() {
+            try {
+                const response = await fetch('/prompts');
+                promptsData = await response.json();
+                renderPromptList();
+                syncSystemModeSelect();
+            } catch (error) {
+                console.error('Erreur chargement prompts:', error);
+            }
+        }
+
+        function syncSystemModeSelect() {
+            const select = document.getElementById('systemMode');
+            const currentValue = select.value;
+            select.innerHTML = '';
+            for (const [key, prompt] of Object.entries(promptsData)) {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `${prompt.icon || '\uD83D\uDCAC'} ${prompt.name}`;
+                select.appendChild(opt);
+            }
+            if (promptsData[currentValue]) {
+                select.value = currentValue;
+            }
+        }
+
+        function openPromptAdmin() {
+            document.getElementById('promptModal').classList.add('active');
+            loadPromptsData();
+        }
+
+        function closePromptAdmin() {
+            document.getElementById('promptModal').classList.remove('active');
+        }
+
+        function renderPromptList() {
+            const list = document.getElementById('promptList');
+            list.innerHTML = '';
+            for (const [key, prompt] of Object.entries(promptsData)) {
+                const item = document.createElement('div');
+                item.className = `prompt-item${currentEditingPromptId === key ? ' active' : ''}`;
+                item.onclick = () => selectPrompt(key);
+
+                const isDefault = prompt.is_default ? '<span class="prompt-default-badge">d\u00e9faut</span>' : '';
+                item.innerHTML = `
+                    <div class="prompt-item-icon">${prompt.icon || '\uD83D\uDCAC'}</div>
+                    <div class="prompt-item-info">
+                        <div class="prompt-item-name">${prompt.name} ${isDefault}</div>
+                        <div class="prompt-item-id">${key}</div>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function selectPrompt(promptId) {
+            currentEditingPromptId = promptId;
+            const prompt = promptsData[promptId];
+            if (!prompt) return;
+
+            document.getElementById('editorPlaceholder').style.display = 'none';
+            document.getElementById('editorForm').style.display = 'flex';
+
+            document.getElementById('promptIcon').value = prompt.icon || '\uD83D\uDCAC';
+            document.getElementById('promptName').value = prompt.name || '';
+            document.getElementById('promptId').value = promptId;
+            document.getElementById('promptId').disabled = true; // ID non modifiable en édition
+            document.getElementById('promptContent').value = prompt.content || '';
+            updateCharCount();
+
+            // Afficher/masquer boutons
+            document.getElementById('btnDelete').style.display = prompt.is_default ? 'none' : 'inline-flex';
+            document.getElementById('btnDuplicate').style.display = 'inline-flex';
+
+            // Métadonnées
+            const meta = document.getElementById('editorMeta');
+            if (prompt.updated_at) {
+                const date = new Date(prompt.updated_at);
+                meta.textContent = `Derni\u00e8re modification: ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}`;
+            } else {
+                meta.textContent = '';
+            }
+
+            renderPromptList();
+        }
+
+        function prepareNewPrompt() {
+            currentEditingPromptId = null;
+            document.getElementById('editorPlaceholder').style.display = 'none';
+            document.getElementById('editorForm').style.display = 'flex';
+
+            document.getElementById('promptIcon').value = '\uD83D\uDCAC';
+            document.getElementById('promptName').value = '';
+            document.getElementById('promptId').value = '';
+            document.getElementById('promptId').disabled = false;
+            document.getElementById('promptContent').value = '';
+            updateCharCount();
+
+            document.getElementById('btnDelete').style.display = 'none';
+            document.getElementById('btnDuplicate').style.display = 'none';
+            document.getElementById('editorMeta').textContent = 'Nouveau prompt';
+
+            renderPromptList();
+        }
+
+        function updateCharCount() {
+            const content = document.getElementById('promptContent').value;
+            const count = document.getElementById('charCount');
+            count.textContent = content.length;
+            count.style.color = content.length > 4500 ? 'var(--danger)' : 'var(--muted)';
+        }
+
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'promptContent') updateCharCount();
+        });
+
+        async function savePrompt() {
+            const id = document.getElementById('promptId').value.trim().toLowerCase();
+            const name = document.getElementById('promptName').value.trim();
+            const content = document.getElementById('promptContent').value.trim();
+            const icon = document.getElementById('promptIcon').value.trim() || '\uD83D\uDCAC';
+
+            if (!id || !name || !content) {
+                alert('Tous les champs sont requis (identifiant, nom, contenu).');
+                return;
+            }
+
+            try {
+                const response = await fetch('/prompts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name, content, icon })
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(`Erreur: ${data.error}`);
+                    return;
+                }
+
+                currentEditingPromptId = data.id || id;
+                await loadPromptsData();
+                selectPrompt(currentEditingPromptId);
+
+                // Animation de confirmation
+                const btn = document.querySelector('.editor-actions-right .send-btn');
+                btn.textContent = '\u2705 Enregistr\u00e9 !';
+                setTimeout(() => { btn.innerHTML = '\uD83D\uDCBE Enregistrer'; }, 1500);
+
+            } catch (error) {
+                alert(`Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function deleteCurrentPrompt() {
+            if (!currentEditingPromptId) return;
+            const name = promptsData[currentEditingPromptId]?.name || currentEditingPromptId;
+
+            if (!confirm(`Supprimer d\u00e9finitivement le prompt "${name}" ?`)) return;
+
+            try {
+                const response = await fetch(`/prompts/${currentEditingPromptId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(`Erreur: ${data.error}`);
+                    return;
+                }
+
+                currentEditingPromptId = null;
+                document.getElementById('editorPlaceholder').style.display = 'flex';
+                document.getElementById('editorForm').style.display = 'none';
+                await loadPromptsData();
+
+            } catch (error) {
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        async function duplicateCurrentPrompt() {
+            if (!currentEditingPromptId) return;
+
+            try {
+                const response = await fetch(`/prompts/${currentEditingPromptId}/duplicate`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(`Erreur: ${data.error}`);
+                    return;
+                }
+
+                await loadPromptsData();
+                selectPrompt(data.id);
+
+            } catch (error) {
+                alert(`Erreur: ${error.message}`);
+            }
+        }
+
+        // Fermeture modale par Escape ou clic exterieur
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closePromptAdmin();
+        });
+        document.getElementById('promptModal')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closePromptAdmin();
+        });
+
+        // =============================================
+        // --- CHAT (code existant) ---
+        // =============================================
         function selectModel(modelKey) {
             currentModel = modelKey;
 

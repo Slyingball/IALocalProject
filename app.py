@@ -2,6 +2,8 @@ import os
 import json
 import re
 import shutil
+import copy
+from datetime import datetime, timezone
 import subprocess
 import requests
 import platform
@@ -60,26 +62,108 @@ MODELS = {
     },
 }
 
-SYSTEM_PROMPTS = {
-    "cybersecurity": (
-        "Tu es un expert en cybersécurité avec une expertise approfondie en:\n"
-        "- Sécurité des applications web (OWASP Top 10)\n"
-        "- Tests d'intrusion et audit de sécurité\n"
-        "- Cryptographie et gestion des secrets\n"
-        "- Analyse de vulnérabilités (CVE)\n"
-        "- Forensic et réponse aux incidents\n"
-        "- Conformité (RGPD, ISO 27001)\n"
-        "Réponds de manière claire, technique et pédagogique."
-    ),
-    "general": (
-        "Tu es un assistant IA intelligent et serviable. "
-        "Réponds de manière claire, précise et structurée."
-    ),
+# --- Prompts systèmes par défaut (fallback) ---
+DEFAULT_PROMPTS = {
+    "general": {
+        "name": "Général",
+        "icon": "💬",
+        "content": (
+            "Tu es un assistant IA intelligent et serviable. "
+            "Réponds de manière claire, précise et structurée."
+        ),
+        "is_default": True,
+        "created_at": "2025-01-01T00:00:00Z",
+        "updated_at": "2025-01-01T00:00:00Z",
+    },
+    "cybersecurity": {
+        "name": "Cybersécurité",
+        "icon": "🛡️",
+        "content": (
+            "Tu es un expert en cybersécurité avec une expertise approfondie en:\n"
+            "- Sécurité des applications web (OWASP Top 10)\n"
+            "- Tests d'intrusion et audit de sécurité\n"
+            "- Cryptographie et gestion des secrets\n"
+            "- Analyse de vulnérabilités (CVE)\n"
+            "- Forensic et réponse aux incidents\n"
+            "- Conformité (RGPD, ISO 27001)\n"
+            "Réponds de manière claire, technique et pédagogique."
+        ),
+        "is_default": True,
+        "created_at": "2025-01-01T00:00:00Z",
+        "updated_at": "2025-01-01T00:00:00Z",
+    },
 }
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 HISTORY_FILE = os.path.join(DATA_DIR, "history.json")
+PROMPTS_FILE = os.path.join(DATA_DIR, "prompts.json")
+PROMPTS_BACKUP = os.path.join(DATA_DIR, "prompts.backup.json")
 
+
+# --- Utilitaire : écriture atomique avec backup ---
+def _atomic_save(filepath, data, backup_path=None):
+    """Sauvegarde atomique : écrit dans un fichier temporaire puis renomme.
+    Crée un backup du fichier existant si backup_path est fourni."""
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    tmp_path = filepath + ".tmp"
+    try:
+        # Écriture dans un fichier temporaire
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        # Backup de l'ancien fichier si il existe
+        if backup_path and os.path.exists(filepath):
+            shutil.copy2(filepath, backup_path)
+        # Remplacement atomique
+        os.replace(tmp_path, filepath)
+    except Exception as e:
+        # Nettoyage du fichier temporaire en cas d'erreur
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise e
+
+
+# --- Gestion des prompts systèmes ---
+def load_prompts():
+    """Charge les prompts depuis le fichier JSON, avec fallback sur les défauts."""
+    prompts = copy.deepcopy(DEFAULT_PROMPTS)
+    if os.path.exists(PROMPTS_FILE):
+        try:
+            with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            # Fusion : les prompts sauvegardés écrasent les défauts
+            for key, value in saved.items():
+                prompts[key] = value
+            # S'assurer que les défauts existent toujours
+            for key, default in DEFAULT_PROMPTS.items():
+                if key not in prompts:
+                    prompts[key] = copy.deepcopy(default)
+        except Exception as e:
+            print(f"⚠️ Erreur au chargement des prompts ({e}). Utilisation des défauts.")
+    return prompts
+
+
+def save_prompts(prompts_data):
+    """Sauvegarde les prompts avec écriture atomique et backup."""
+    try:
+        _atomic_save(PROMPTS_FILE, prompts_data, backup_path=PROMPTS_BACKUP)
+    except Exception as e:
+        print(f"❌ Erreur à la sauvegarde des prompts : {e}")
+        raise
+
+
+# Variable globale des prompts (chargée au démarrage)
+system_prompts = load_prompts()
+
+
+# Propriété de compatibilité : SYSTEM_PROMPTS renvoie {id: content}
+def get_system_prompts_flat():
+    """Retourne un dict {id: content} compatible avec l'ancien format."""
+    return {key: p["content"] for key, p in system_prompts.items()}
+
+SYSTEM_PROMPTS = get_system_prompts_flat()
+
+
+# --- Gestion de l'historique de conversation ---
 def load_history():
     history = {key: [] for key in MODELS.keys()}
     if os.path.exists(HISTORY_FILE):
@@ -93,13 +177,15 @@ def load_history():
             print(f"Erreur au chargement de l'historique : {e}")
     return history
 
+
 def save_history(history_data):
-    os.makedirs(DATA_DIR, exist_ok=True)
+    """Sauvegarde l'historique avec écriture atomique et backup."""
     try:
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history_data, f, ensure_ascii=False, indent=4)
+        _atomic_save(HISTORY_FILE, history_data,
+                     backup_path=os.path.join(DATA_DIR, "history.backup.json"))
     except Exception as e:
         print(f"Erreur à la sauvegarde de l'historique : {e}")
+
 
 conversation_history = load_history()
 
@@ -263,7 +349,9 @@ TOOLS = [
 ]
 
 def build_messages(model_key: str, question: str, system_mode: str, use_context: bool):
-    system_prompt = SYSTEM_PROMPTS.get(system_mode, SYSTEM_PROMPTS["general"])
+    # Lecture dynamique depuis les prompts chargés en mémoire
+    prompt_entry = system_prompts.get(system_mode, system_prompts.get("general", {}))
+    system_prompt = prompt_entry.get("content", "") if isinstance(prompt_entry, dict) else str(prompt_entry)
     system_with_tools = f"{system_prompt}\n\n{TOOL_INSTRUCTIONS}"
     messages = [{"role": "system", "content": system_with_tools}]
 
@@ -825,7 +913,7 @@ def get_models():
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", models=MODELS)
+    return render_template("index.html", models=MODELS, prompts=system_prompts)
 
 
 @app.route("/ask", methods=["POST"])
@@ -901,11 +989,142 @@ def get_history(model_key):
     return jsonify({"model": MODELS[model_key]["name"], "history": conversation_history[model_key]})
 
 
+# ========================================
+# --- API CRUD : Gestion des Prompts ---
+# ========================================
+
+@app.route("/prompts", methods=["GET"])
+def get_prompts():
+    """Retourne tous les prompts systèmes avec leurs métadonnées."""
+    return jsonify(system_prompts)
+
+
+@app.route("/prompts", methods=["POST"])
+def create_or_update_prompt():
+    """Crée ou met à jour un prompt système."""
+    global SYSTEM_PROMPTS
+    data = request.get_json()
+
+    prompt_id = (data.get("id") or "").strip().lower()
+    name = (data.get("name") or "").strip()
+    content = (data.get("content") or "").strip()
+    icon = (data.get("icon") or "💬").strip()
+
+    if not prompt_id:
+        return jsonify({"error": "L'identifiant (id) du prompt est requis."}), 400
+    if not re.fullmatch(r"[a-z0-9_-]+", prompt_id):
+        return jsonify({"error": "L'identifiant ne doit contenir que des lettres minuscules, chiffres, tirets et underscores."}), 400
+    if not name:
+        return jsonify({"error": "Le nom du prompt est requis."}), 400
+    if not content:
+        return jsonify({"error": "Le contenu du prompt est requis."}), 400
+    if len(content) > 5000:
+        return jsonify({"error": "Le contenu du prompt est trop long (max 5000 caractères)."}), 400
+
+    now = datetime.now(timezone.utc).isoformat()
+    is_update = prompt_id in system_prompts
+
+    if is_update:
+        # Mise à jour : on conserve created_at et is_default
+        system_prompts[prompt_id]["name"] = name
+        system_prompts[prompt_id]["content"] = content
+        system_prompts[prompt_id]["icon"] = icon
+        system_prompts[prompt_id]["updated_at"] = now
+    else:
+        # Création
+        system_prompts[prompt_id] = {
+            "name": name,
+            "icon": icon,
+            "content": content,
+            "is_default": False,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+    try:
+        save_prompts(system_prompts)
+        SYSTEM_PROMPTS = get_system_prompts_flat()
+        action = "mis à jour" if is_update else "créé"
+        return jsonify({
+            "message": f"Prompt '{name}' {action} avec succès.",
+            "prompt": system_prompts[prompt_id],
+            "id": prompt_id,
+        })
+    except Exception as e:
+        return jsonify({"error": f"Erreur lors de la sauvegarde : {e}"}), 500
+
+
+@app.route("/prompts/<prompt_id>", methods=["DELETE"])
+def delete_prompt(prompt_id):
+    """Supprime un prompt système (les prompts par défaut ne peuvent pas être supprimés)."""
+    global SYSTEM_PROMPTS
+
+    if prompt_id not in system_prompts:
+        return jsonify({"error": f"Prompt '{prompt_id}' introuvable."}), 404
+
+    if system_prompts[prompt_id].get("is_default", False):
+        return jsonify({"error": "Les prompts par défaut ne peuvent pas être supprimés. Vous pouvez les modifier."}), 403
+
+    name = system_prompts[prompt_id].get("name", prompt_id)
+    del system_prompts[prompt_id]
+
+    try:
+        save_prompts(system_prompts)
+        SYSTEM_PROMPTS = get_system_prompts_flat()
+        return jsonify({"message": f"Prompt '{name}' supprimé avec succès."})
+    except Exception as e:
+        return jsonify({"error": f"Erreur lors de la sauvegarde : {e}"}), 500
+
+
+@app.route("/prompts/<prompt_id>/duplicate", methods=["POST"])
+def duplicate_prompt(prompt_id):
+    """Duplique un prompt existant."""
+    global SYSTEM_PROMPTS
+
+    if prompt_id not in system_prompts:
+        return jsonify({"error": f"Prompt '{prompt_id}' introuvable."}), 404
+
+    # Générer un nouvel ID
+    base_id = f"{prompt_id}-copy"
+    new_id = base_id
+    counter = 1
+    while new_id in system_prompts:
+        new_id = f"{base_id}-{counter}"
+        counter += 1
+
+    now = datetime.now(timezone.utc).isoformat()
+    original = system_prompts[prompt_id]
+
+    system_prompts[new_id] = {
+        "name": f"{original['name']} (copie)",
+        "icon": original.get("icon", "💬"),
+        "content": original["content"],
+        "is_default": False,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    try:
+        save_prompts(system_prompts)
+        SYSTEM_PROMPTS = get_system_prompts_flat()
+        return jsonify({
+            "message": f"Prompt dupliqué sous l'ID '{new_id}'.",
+            "prompt": system_prompts[new_id],
+            "id": new_id,
+        })
+    except Exception as e:
+        return jsonify({"error": f"Erreur lors de la sauvegarde : {e}"}), 500
+
+
 if __name__ == "__main__":
     print("Serveur Flask démarré sur http://localhost:5000")
     print("Modèles disponibles:")
     for key, info in MODELS.items():
         print(f"   {info['icon']} {info['name']} - {info['description']}")
+    print(f"Prompts systèmes chargés: {len(system_prompts)}")
+    for pid, pinfo in system_prompts.items():
+        default_tag = " [défaut]" if pinfo.get("is_default") else ""
+        print(f"   {pinfo.get('icon', '')} {pinfo['name']}{default_tag}")
     
     # Gestion sécurisée du mode debug via variable d'environnement
     debug_mode = os.getenv("FLASK_DEBUG", "False").lower() in ("true", "1", "yes")
