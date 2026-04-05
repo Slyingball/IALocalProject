@@ -1,4 +1,4 @@
-# 🛡️ IALocalProject : Assistant Cyber & Multi-IA Local
+#  IALocalProject : Assistant Cyber & Multi-IA Local
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![Flask](https://img.shields.io/badge/flask-%23000.svg?style=flat&logo=flask&logoColor=white)
@@ -7,7 +7,7 @@
 
 **Une interface web moderne pour orchestrer des LLMs locaux (via Ollama) avec des capacités d'exécution d'outils réels (Nmap).**
 
-## 📖 Table des matières
+##  Table des matières
 - [Vue d'ensemble](#-vue-densemble)
 - [Fonctionnalités Clés](#-fonctionnalités-clés)
 - [Prérequis](#-prérequis)
@@ -20,11 +20,11 @@
 
 ---
 
-## 🎯 Vue d'ensemble
+##  Vue d'ensemble
 
 Ce projet est une démonstration d'**Agent IA autonome** fonctionnant à 100% en local. Il connecte une interface web (Flask) à Ollama. Contrairement à un chat classique, les modèles compatibles peuvent exécuter des **outils** (Function Calling) pour interagir avec le système local, notamment pour effectuer des scans réseau via **Nmap**.
 
-### ✨ Fonctionnalités Clés
+###  Fonctionnalités Clés
 
 * 🔄 **Multi-Modèles :** Basculez instantanément entre différents modèles (Llama 3 rapide, Llama 3.1 intelligent, Llama 2 non-censuré).
 * 🛠️ **Support des "Tools" (Outils) :** Les modèles compatibles (ex: `llama3.1:8b`) peuvent lancer des scans Nmap réels et analyser les résultats.
