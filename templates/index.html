@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="fr">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-IA Locale</title>
+    <meta name="description" content="Interface multi-modèles IA locale avec Ollama et Flask">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -19,130 +17,152 @@
         <div class="glow-orb orb-1"></div>
         <div class="glow-orb orb-2"></div>
     </div>
-    <div class="app-shell">
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="logo-circle">IA</div>
-                <div>
-                    <div class="brand-name">Multi-IA Locale</div>
-                    <div class="brand-sub">Propulse par Ollama + Flask</div>
-                </div>
-            </div>
 
-            <div class="panel">
-                <div class="panel-title">Modeles disponibles</div>
-                <div class="model-list">
-                    {% for key, info in models.items() %}
-                    <button class="model-pill" data-model="{{ key }}" onclick="selectModel('{{ key }}')">
-                        <div class="pill-main">
+    <div class="app-layout">
+        <!-- ====== SIDEBAR ====== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-top">
+                <div class="brand">
+                    <div class="logo-circle">IA</div>
+                    <div class="brand-text">
+                        <div class="brand-name">Multi-IA Locale</div>
+                        <div class="brand-sub">Ollama + Flask</div>
+                    </div>
+                </div>
+
+                <!-- Modèles -->
+                <div class="sidebar-section">
+                    <div class="section-label">Modele</div>
+                    <div class="model-list">
+                        {% for key, info in models.items() %}
+                        <button class="model-pill" data-model="{{ key }}" onclick="selectModel('{{ key }}')">
                             <span class="pill-badge">{{ info.icon }}</span>
-                            <div>
-                                <div class="pill-name">{{ info.name }}</div>
-                                <div class="pill-desc">{{ info.description }}</div>
+                            <div class="pill-info">
+                                <span class="pill-name">{{ info.name }}</span>
+                                <span class="pill-desc">{{ info.description }}</span>
+                            </div>
+                            <span class="pill-check">✓</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div class="sidebar-section">
+                    <div class="section-label">Options</div>
+                    <label class="toggle-row">
+                        <input type="checkbox" id="useContext" checked>
+                        <span>Contexte de conversation</span>
+                    </label>
+                    <div class="select-row">
+                        <span>Mode systeme</span>
+                        <select id="systemMode">
+                            {% for key, prompt in prompts.items() %}
+                            <option value="{{ key }}">{{ prompt.icon }} {{ prompt.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Commandes rapides (cartes verticales au lieu d'un tableau) -->
+                <div class="sidebar-section">
+                    <div class="section-label">Commandes rapides</div>
+                    <div class="quick-commands">
+                        <div class="quick-cmd" onclick="insertPrompt('Fais un scan rapide de 192.168.0.10 ports 22,80')">
+                            <div class="cmd-icon">🔍</div>
+                            <div class="cmd-body">
+                                <div class="cmd-name">Scan rapide</div>
+                                <div class="cmd-desc">Ports precis avec -F</div>
                             </div>
                         </div>
-                        <span class="pill-check">✓</span>
-                    </button>
-                    {% endfor %}
+                        <div class="quick-cmd" onclick="insertPrompt('Scan versions de scanme.nmap.org ports 80,443')">
+                            <div class="cmd-icon">🔎</div>
+                            <div class="cmd-body">
+                                <div class="cmd-name">Scan versions</div>
+                                <div class="cmd-desc">Detection services -sV</div>
+                            </div>
+                        </div>
+                        <div class="quick-cmd" onclick="insertPrompt('Reconnaissance rapide de scanme.nmap.org')">
+                            <div class="cmd-icon">📡</div>
+                            <div class="cmd-body">
+                                <div class="cmd-name">Recon rapide</div>
+                                <div class="cmd-desc">Ping + Nmap + HTTP</div>
+                            </div>
+                        </div>
+                        <div class="quick-cmd" onclick="insertPrompt('Decouvre toutes les machines de mon reseau local')">
+                            <div class="cmd-icon">🌐</div>
+                            <div class="cmd-body">
+                                <div class="cmd-name">Discovery LAN</div>
+                                <div class="cmd-desc">Auto-detection reseau</div>
+                            </div>
+                        </div>
+                        <div class="quick-cmd" onclick="insertPrompt('Audite les ports admin de 192.168.1.1')">
+                            <div class="cmd-icon">🛡️</div>
+                            <div class="cmd-body">
+                                <div class="cmd-name">Audit securite</div>
+                                <div class="cmd-desc">Ports admin + alertes</div>
+                            </div>
+                        </div>
+                        <div class="quick-cmd" onclick="insertPrompt('Quel est l etat de cette machine ?')">
+                            <div class="cmd-icon">💻</div>
+                            <div class="cmd-body">
+                                <div class="cmd-name">Etat systeme</div>
+                                <div class="cmd-desc">CPU, RAM, disque</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="panel">
-                <div class="panel-title">Options</div>
-                <label class="row toggle-row">
-                    <input type="checkbox" id="useContext" checked>
-                    <span>Utiliser le contexte de conversation</span>
-                </label>
-                <label class="row select-row">
-                    <span>Mode systeme</span>
-                    <select id="systemMode">
-                        {% for key, prompt in prompts.items() %}
-                        <option value="{{ key }}">{{ prompt.icon }} {{ prompt.name }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-            </div>
-
-            <div class="panel commands-panel">
-                <div class="panel-title">Commandes disponibles</div>
-                <table class="commands-table">
-                    <thead>
-                        <tr>
-                            <th>Commande</th>
-                            <th>Description</th>
-                            <th>Exemple</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Scan rapide</td>
-                            <td>Ports precis avec scan rapide (-F)</td>
-                            <td>192.168.0.10 ports 22,80</td>
-                        </tr>
-                        <tr>
-                            <td>Scan versions</td>
-                            <td>Detection services (-sV)</td>
-                            <td>scanme.nmap.org ports 80,443 sV</td>
-                        </tr>
-                        <tr>
-                            <td>Scan complet</td>
-                            <td>Plage large sans ping</td>
-                            <td>192.168.0.10 ports 1-1024 no-ping</td>
-                        </tr>
-                        <tr>
-                            <td>Historique</td>
-                            <td>Effacer ou recharger</td>
-                            <td>Boutons Effacer/Recharge</td>
-                        </tr>
-                        <tr>
-                            <td>API</td>
-                            <td>Appel POST /ask en JSON</td>
-                            <td>{model, question, use_context}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="panel actions-panel">
-                <button type="button" class="ghost-btn settings-btn" onclick="openPromptAdmin()">
-                    ⚙️ Gestion des Prompts
+            <!-- Actions en bas de la sidebar -->
+            <div class="sidebar-bottom">
+                <button class="sidebar-action settings-btn" onclick="openPromptAdmin()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    Gestion des Prompts
                 </button>
-                <button type="button" class="ghost-btn" onclick="clearHistory()">
-                    Effacer historique modele
+                <button class="sidebar-action" onclick="clearHistory()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Effacer historique
                 </button>
-                <button type="button" class="ghost-btn" onclick="clearAllHistories()">
-                    Effacer tout l'historique
+                <button class="sidebar-action" onclick="clearAllHistories()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    Tout effacer
                 </button>
             </div>
         </aside>
 
-        <main class="chat-pane">
-            <div class="chat-header">
-                <div>
-                    <div class="chat-kicker">Conversation active</div>
-                    <div class="chat-title">Bonjour 😒</div>
-                </div>
-                <div class="chip" id="activeModelLabel">Modele: -</div>
+        <!-- ====== ZONE CHAT PRINCIPALE ====== -->
+        <main class="chat-main">
+            <!-- Topbar minimaliste -->
+            <div class="chat-topbar">
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="topbar-model" id="activeModelLabel">Multi-IA Locale</div>
             </div>
 
-            <div class="chat-container" id="chatContainer">
+            <!-- Messages (centrés comme Claude) -->
+            <div class="chat-scroll" id="chatContainer">
                 <div class="welcome-block">
-                    <div class="welcome-title">Bienvenue</div>
-                    <div class="welcome-sub">Choisissez un modele et posez votre premiere question.</div>
+                    <div class="welcome-logo">IA</div>
+                    <h1 class="welcome-title">Bienvenue sur Multi-IA</h1>
+                    <p class="welcome-sub">Choisissez un modele et posez votre question.</p>
                 </div>
             </div>
 
-            <form id="askForm" class="input-dock">
-                <textarea id="question" rows="2" placeholder="Saisissez votre requete... (Ctrl+Enter pour envoyer)"
-                    required></textarea>
-                <div class="dock-actions">
-                    <button type="button" class="ghost-btn" onclick="clearHistory()">Effacer historique</button>
-                    <button type="submit" class="send-btn" id="submitBtn">
-                        <span class="send-label">Envoyer</span>
+            <!-- Barre d'input (centrée, arrondie) -->
+            <div class="input-area">
+                <form id="askForm" class="input-bar">
+                    <textarea id="question" rows="1" placeholder="Posez votre question..." required></textarea>
+                    <button type="submit" class="send-btn" id="submitBtn" title="Envoyer (Ctrl+Enter)">
+                        <span class="send-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </span>
                         <span class="loading" style="display:none;">◌</span>
                     </button>
-                </div>
-            </form>
+                </form>
+                <div class="input-hint">Ctrl+Entree pour envoyer · LLaMA 3.1 pour les outils</div>
+            </div>
         </main>
     </div>
 
@@ -153,50 +173,46 @@
                 <div class="modal-header-left">
                     <div class="modal-icon">⚙️</div>
                     <div>
-                        <h2 class="modal-title">Gestion des Prompts Systèmes</h2>
-                        <p class="modal-subtitle">Créez et personnalisez les comportements de votre IA</p>
+                        <h2 class="modal-title">Gestion des Prompts Systemes</h2>
+                        <p class="modal-subtitle">Creez et personnalisez les comportements de votre IA</p>
                     </div>
                 </div>
                 <button class="modal-close" onclick="closePromptAdmin()">&times;</button>
             </div>
 
             <div class="modal-body">
-                <!-- Colonne gauche : Liste des prompts -->
                 <div class="prompt-list-pane">
                     <div class="prompt-list-header">
                         <span class="prompt-list-title">Profils</span>
                         <button class="add-prompt-btn" onclick="prepareNewPrompt()" title="Nouveau prompt">+ Nouveau</button>
                     </div>
-                    <div class="prompt-list" id="promptList">
-                        <!-- Rempli dynamiquement par JS -->
-                    </div>
+                    <div class="prompt-list" id="promptList"></div>
                 </div>
 
-                <!-- Colonne droite : Éditeur -->
                 <div class="prompt-editor-pane" id="promptEditorPane">
                     <div class="editor-placeholder" id="editorPlaceholder">
                         <div class="editor-placeholder-icon">📝</div>
-                        <p>Sélectionnez un prompt ou créez-en un nouveau</p>
+                        <p>Selectionnez un prompt ou creez-en un nouveau</p>
                     </div>
                     <div class="editor-form" id="editorForm" style="display:none;">
                         <div class="editor-row">
                             <div class="editor-field">
-                                <label for="promptIcon">Icône</label>
+                                <label for="promptIcon">Icone</label>
                                 <input type="text" id="promptIcon" placeholder="💬" maxlength="4">
                             </div>
                             <div class="editor-field" style="flex:3">
                                 <label for="promptName">Nom du profil</label>
-                                <input type="text" id="promptName" placeholder="Ex: Assistant Développeur">
+                                <input type="text" id="promptName" placeholder="Ex: Assistant Developpeur">
                             </div>
                         </div>
                         <div class="editor-field">
                             <label for="promptId">Identifiant technique</label>
                             <input type="text" id="promptId" placeholder="ex: dev-python" pattern="[a-z0-9_-]+">
-                            <small class="editor-hint">Lettres minuscules, chiffres, tirets. Non modifiable après création.</small>
+                            <small class="editor-hint">Lettres minuscules, chiffres, tirets. Non modifiable apres creation.</small>
                         </div>
                         <div class="editor-field" style="flex:1">
-                            <label for="promptContent">Prompt système</label>
-                            <textarea id="promptContent" rows="10" placeholder="Décrivez le rôle de l'IA..."></textarea>
+                            <label for="promptContent">Prompt systeme</label>
+                            <textarea id="promptContent" rows="10" placeholder="Decrivez le role de l'IA..."></textarea>
                             <div class="editor-char-count"><span id="charCount">0</span> / 5000</div>
                         </div>
                         <div class="editor-actions">
@@ -206,7 +222,7 @@
                             <div class="editor-actions-right">
                                 <button class="ghost-btn" id="btnDuplicate" onclick="duplicateCurrentPrompt()" style="display:none;">📋 Dupliquer</button>
                                 <button class="ghost-btn danger-btn" id="btnDelete" onclick="deleteCurrentPrompt()" style="display:none;">🗑️ Supprimer</button>
-                                <button class="send-btn" onclick="savePrompt()">💾 Enregistrer</button>
+                                <button class="send-btn save-btn" onclick="savePrompt()">💾 Enregistrer</button>
                             </div>
                         </div>
                     </div>
@@ -214,15 +230,33 @@
             </div>
         </div>
     </div>
+
     <script>
         let currentModel = 'llama3';
-        let promptsData = {}; // Cache local des prompts
+        let promptsData = {};
         let currentEditingPromptId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             selectModel(currentModel);
             loadPromptsData();
+            autoResizeTextarea();
         });
+
+        // =============================================
+        // --- SIDEBAR ---
+        // =============================================
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function insertPrompt(text) {
+            const textarea = document.getElementById('question');
+            textarea.value = text;
+            textarea.focus();
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
 
         // =============================================
         // --- GESTION DES PROMPTS (ADMIN PANEL) ---
@@ -294,15 +328,13 @@
             document.getElementById('promptIcon').value = prompt.icon || '\uD83D\uDCAC';
             document.getElementById('promptName').value = prompt.name || '';
             document.getElementById('promptId').value = promptId;
-            document.getElementById('promptId').disabled = true; // ID non modifiable en édition
+            document.getElementById('promptId').disabled = true;
             document.getElementById('promptContent').value = prompt.content || '';
             updateCharCount();
 
-            // Afficher/masquer boutons
             document.getElementById('btnDelete').style.display = prompt.is_default ? 'none' : 'inline-flex';
             document.getElementById('btnDuplicate').style.display = 'inline-flex';
 
-            // Métadonnées
             const meta = document.getElementById('editorMeta');
             if (prompt.updated_at) {
                 const date = new Date(prompt.updated_at);
@@ -372,8 +404,7 @@
                 await loadPromptsData();
                 selectPrompt(currentEditingPromptId);
 
-                // Animation de confirmation
-                const btn = document.querySelector('.editor-actions-right .send-btn');
+                const btn = document.querySelector('.editor-actions-right .save-btn');
                 btn.textContent = '\u2705 Enregistr\u00e9 !';
                 setTimeout(() => { btn.innerHTML = '\uD83D\uDCBE Enregistrer'; }, 1500);
 
@@ -431,7 +462,6 @@
             }
         }
 
-        // Fermeture modale par Escape ou clic exterieur
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closePromptAdmin();
         });
@@ -440,7 +470,7 @@
         });
 
         // =============================================
-        // --- CHAT (code existant) ---
+        // --- CHAT ---
         // =============================================
         function selectModel(modelKey) {
             currentModel = modelKey;
@@ -451,10 +481,11 @@
 
             const label = document.getElementById('activeModelLabel');
             const activeButton = document.querySelector(`[data-model="${modelKey}"] .pill-name`);
-            label.textContent = activeButton ? `Modele: ${activeButton.textContent}` : `Modele: ${modelKey}`;
+            label.textContent = activeButton ? activeButton.textContent : modelKey;
 
             loadHistory(modelKey);
         }
+
         async function loadHistory(modelKey) {
             try {
                 const response = await fetch(`/history/${modelKey}`);
@@ -470,51 +501,61 @@
                 } else {
                     chatContainer.innerHTML = `
                         <div class="welcome-block">
-                            <div class="welcome-title">${data.model}</div>
-                            <div class="welcome-sub">Aucun historique. Commencez une nouvelle conversation.</div>
+                            <div class="welcome-logo">IA</div>
+                            <h1 class="welcome-title">${data.model}</h1>
+                            <p class="welcome-sub">Aucun historique. Commencez une nouvelle conversation.</p>
                         </div>`;
                 }
             } catch (error) {
                 console.error('Erreur lors du chargement de l\'historique:', error);
             }
         }
+
         function addMessage(text, type, scroll = true) {
             const chatContainer = document.getElementById('chatContainer');
             const welcome = chatContainer.querySelector('.welcome-block');
             if (welcome) welcome.remove();
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}-message`;
+            const wrapper = document.createElement('div');
+            wrapper.className = `msg-row ${type}-row`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-wrapper';
 
             const avatar = document.createElement('div');
-            avatar.className = `avatar ${type}-avatar`;
+            avatar.className = `msg-avatar ${type}-avatar`;
             avatar.innerHTML = type === 'user'
-                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
-                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>';
+                ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+                : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
 
             const content = document.createElement('div');
-            content.className = 'message-content';
+            content.className = 'msg-content';
             content.textContent = text;
 
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(content);
-            chatContainer.appendChild(messageDiv);
+            bubble.appendChild(avatar);
+            bubble.appendChild(content);
+            wrapper.appendChild(bubble);
+            chatContainer.appendChild(wrapper);
 
             if (scroll) {
-                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
         }
+
         function showError(message) {
             const chatContainer = document.getElementById('chatContainer');
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'message error-message';
-            errorDiv.innerHTML = `
-                <div class="avatar">!</div>
-                <div class="message-content">${message}</div>
+            const wrapper = document.createElement('div');
+            wrapper.className = 'msg-row error-row';
+            wrapper.innerHTML = `
+                <div class="msg-wrapper">
+                    <div class="msg-avatar error-avatar">!</div>
+                    <div class="msg-content msg-error">${message}</div>
+                </div>
             `;
-            chatContainer.appendChild(errorDiv);
-            errorDiv.scrollIntoView({ behavior: 'smooth' });
+            chatContainer.appendChild(wrapper);
+            wrapper.scrollIntoView({ behavior: 'smooth' });
         }
+
         document.getElementById('askForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const question = document.getElementById('question').value.trim();
@@ -530,6 +571,7 @@
 
             addMessage(question, 'user');
             document.getElementById('question').value = '';
+            document.getElementById('question').style.height = 'auto';
 
             try {
                 const response = await fetch('/ask', {
@@ -558,10 +600,9 @@
                 document.getElementById('question').focus();
             }
         });
+
         async function clearHistory() {
-            if (!confirm(`Voulez-vous effacer l'historique de ${currentModel} ?`)) {
-                return;
-            }
+            if (!confirm(`Voulez-vous effacer l'historique de ${currentModel} ?`)) return;
             try {
                 await fetch('/clear_history', {
                     method: 'POST',
@@ -575,9 +616,7 @@
         }
 
         async function clearAllHistories() {
-            if (!confirm("Effacer l'historique de tous les modeles ?")) {
-                return;
-            }
+            if (!confirm("Effacer l'historique de tous les modeles ?")) return;
             try {
                 await fetch('/clear_history', {
                     method: 'POST',
@@ -588,6 +627,15 @@
             } catch (error) {
                 showError('Erreur lors de l\'effacement global');
             }
+        }
+
+        // Auto-resize du textarea (style Claude)
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('question');
+            textarea.addEventListener('input', () => {
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+            });
         }
 
         document.getElementById('question').addEventListener('keydown', (e) => {
