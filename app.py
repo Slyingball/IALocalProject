@@ -10,7 +10,7 @@ import platform
 import socket
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -913,7 +913,10 @@ def get_models():
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", models=MODELS, prompts=system_prompts)
+    return send_from_directory(
+        os.path.join(app.static_folder, "vue"),
+        "index.html",
+    )
 
 
 @app.route("/ask", methods=["POST"])
@@ -1123,8 +1126,11 @@ if __name__ == "__main__":
         print(f"   {info['icon']} {info['name']} - {info['description']}")
     print(f"Prompts systèmes chargés: {len(system_prompts)}")
     for pid, pinfo in system_prompts.items():
-        default_tag = " [défaut]" if pinfo.get("is_default") else ""
-        print(f"   {pinfo.get('icon', '')} {pinfo['name']}{default_tag}")
+        default_tag = " [defaut]" if pinfo.get("is_default") else ""
+        try:
+            print(f"   {pinfo.get('icon', '')} {pinfo['name']}{default_tag}")
+        except UnicodeEncodeError:
+            print(f"   {pinfo['name']}{default_tag}")
     
     # Gestion sécurisée du mode debug via variable d'environnement
     debug_mode = os.getenv("FLASK_DEBUG", "False").lower() in ("true", "1", "yes")

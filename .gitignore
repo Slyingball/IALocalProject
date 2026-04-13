@@ -3,3 +3,11 @@
 
 # Local execution data
 data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Legacy frontend (replaced by Vue.js build)
+*.bak
