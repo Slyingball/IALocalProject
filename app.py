@@ -10,7 +10,7 @@ import platform
 import socket
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -154,13 +154,6 @@ def save_prompts(prompts_data):
 # Variable globale des prompts (chargée au démarrage)
 system_prompts = load_prompts()
 
-
-# Propriété de compatibilité : SYSTEM_PROMPTS renvoie {id: content}
-def get_system_prompts_flat():
-    """Retourne un dict {id: content} compatible avec l'ancien format."""
-    return {key: p["content"] for key, p in system_prompts.items()}
-
-SYSTEM_PROMPTS = get_system_prompts_flat()
 
 
 # --- Gestion de l'historique de conversation ---
@@ -1005,7 +998,6 @@ def get_prompts():
 @app.route("/prompts", methods=["POST"])
 def create_or_update_prompt():
     """Crée ou met à jour un prompt système."""
-    global SYSTEM_PROMPTS
     data = request.get_json()
 
     prompt_id = (data.get("id") or "").strip().lower()
@@ -1046,7 +1038,6 @@ def create_or_update_prompt():
 
     try:
         save_prompts(system_prompts)
-        SYSTEM_PROMPTS = get_system_prompts_flat()
         action = "mis à jour" if is_update else "créé"
         return jsonify({
             "message": f"Prompt '{name}' {action} avec succès.",
@@ -1060,7 +1051,6 @@ def create_or_update_prompt():
 @app.route("/prompts/<prompt_id>", methods=["DELETE"])
 def delete_prompt(prompt_id):
     """Supprime un prompt système (les prompts par défaut ne peuvent pas être supprimés)."""
-    global SYSTEM_PROMPTS
 
     if prompt_id not in system_prompts:
         return jsonify({"error": f"Prompt '{prompt_id}' introuvable."}), 404
@@ -1073,7 +1063,6 @@ def delete_prompt(prompt_id):
 
     try:
         save_prompts(system_prompts)
-        SYSTEM_PROMPTS = get_system_prompts_flat()
         return jsonify({"message": f"Prompt '{name}' supprimé avec succès."})
     except Exception as e:
         return jsonify({"error": f"Erreur lors de la sauvegarde : {e}"}), 500
@@ -1082,7 +1071,6 @@ def delete_prompt(prompt_id):
 @app.route("/prompts/<prompt_id>/duplicate", methods=["POST"])
 def duplicate_prompt(prompt_id):
     """Duplique un prompt existant."""
-    global SYSTEM_PROMPTS
 
     if prompt_id not in system_prompts:
         return jsonify({"error": f"Prompt '{prompt_id}' introuvable."}), 404
@@ -1109,7 +1097,6 @@ def duplicate_prompt(prompt_id):
 
     try:
         save_prompts(system_prompts)
-        SYSTEM_PROMPTS = get_system_prompts_flat()
         return jsonify({
             "message": f"Prompt dupliqué sous l'ID '{new_id}'.",
             "prompt": system_prompts[new_id],
@@ -1125,7 +1112,7 @@ if __name__ == "__main__":
     for key, info in MODELS.items():
         print(f"   {info['icon']} {info['name']} - {info['description']}")
     print(f"Prompts systèmes chargés: {len(system_prompts)}")
-    for pid, pinfo in system_prompts.items():
+    for _, pinfo in system_prompts.items():
         default_tag = " [defaut]" if pinfo.get("is_default") else ""
         try:
             print(f"   {pinfo.get('icon', '')} {pinfo['name']}{default_tag}")
